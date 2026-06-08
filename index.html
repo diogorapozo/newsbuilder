@@ -661,6 +661,63 @@
         }
         .error-box.visible { display: block; }
 
+        /* Source picker buttons */
+        .source-btn {
+            padding: 8px 10px;
+            border: 1.5px solid var(--rule);
+            border-radius: 8px;
+            cursor: pointer;
+            background: var(--page);
+            transition: all .15s;
+        }
+        .source-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+        .source-btn.active { border-color: var(--accent); background: var(--accent-soft); }
+        .source-btn-name { font-size: .8rem; font-weight: 600; color: var(--ink); }
+        .source-btn-sub  { font-size: .68rem; color: var(--muted); margin-top: 1px; }
+
+        /* Category tabs */
+        .cat-tab {
+            font-size: .72rem; font-weight: 600;
+            padding: 4px 10px; border-radius: 20px;
+            border: 1px solid var(--rule);
+            cursor: pointer; background: var(--page); color: var(--ink-soft);
+            transition: all .15s;
+        }
+        .cat-tab:hover { border-color: var(--accent); color: var(--accent); }
+        .cat-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Article list items */
+        .article-item {
+            padding: 9px 12px;
+            border: 1.5px solid var(--rule);
+            border-radius: 8px;
+            cursor: pointer;
+            background: white;
+            transition: all .15s;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .article-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+        .article-item.selected { border-color: var(--accent); background: var(--accent-soft); }
+        .article-item-img {
+            width: 48px; height: 34px;
+            object-fit: cover; border-radius: 4px;
+            flex-shrink: 0; display: block;
+            background: var(--rule);
+        }
+        .article-item-body { flex: 1; min-width: 0; }
+        .article-item-title {
+            font-size: .8rem; font-weight: 600;
+            color: var(--ink); line-height: 1.3;
+            margin-bottom: 3px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .article-item-meta { font-size: .68rem; color: var(--muted); }
+
         @media (max-width: 800px) {
             .workspace { grid-template-columns: 1fr; }
             .panel-left { border-right: none; border-bottom: 1px solid var(--rule); }
@@ -684,50 +741,92 @@
     <!-- ── LEFT PANEL ── -->
     <div class="panel-left">
 
-        <!-- HOW TO USE -->
+        <!-- SOURCE PICKER -->
         <div class="panel-section">
-            <div class="panel-label">How to use</div>
-            <div style="background:var(--page); border-radius:8px; padding:12px 14px; font-size:.8rem; line-height:1.7; color:var(--ink-soft); border:1px solid var(--rule);">
-                <div style="margin-bottom:6px;"><strong style="color:var(--accent);">1.</strong> Open any news article (BBC, Reuters, CNN…)</div>
-                <div style="margin-bottom:6px;"><strong style="color:var(--accent);">2.</strong> Select all text <kbd style="background:#eee;border:1px solid #ccc;border-radius:3px;padding:1px 5px;font-size:.75rem;">Ctrl+A</kbd> → copy <kbd style="background:#eee;border:1px solid #ccc;border-radius:3px;padding:1px 5px;font-size:.75rem;">Ctrl+C</kbd></div>
-                <div style="margin-bottom:6px;"><strong style="color:var(--accent);">3.</strong> Paste below → add image URL (optional)</div>
-                <div><strong style="color:var(--accent);">4.</strong> Click <strong>✦ Generate Lesson</strong></div>
+            <div class="panel-label">News Source</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px;" id="source-grid">
+                <div class="source-btn active" data-source="bbc" onclick="selectSource(this)">
+                    <div class="source-btn-name">BBC News</div>
+                    <div class="source-btn-sub">World · UK · Tech</div>
+                </div>
+                <div class="source-btn" data-source="ap" onclick="selectSource(this)">
+                    <div class="source-btn-name">AP News</div>
+                    <div class="source-btn-sub">Top Stories</div>
+                </div>
+                <div class="source-btn" data-source="guardian" onclick="selectSource(this)">
+                    <div class="source-btn-name">The Guardian</div>
+                    <div class="source-btn-sub">World · Science</div>
+                </div>
+                <div class="source-btn" data-source="npr" onclick="selectSource(this)">
+                    <div class="source-btn-name">NPR News</div>
+                    <div class="source-btn-sub">US · World</div>
+                </div>
+                <div class="source-btn" data-source="aljazeera" onclick="selectSource(this)">
+                    <div class="source-btn-name">Al Jazeera</div>
+                    <div class="source-btn-sub">World News</div>
+                </div>
+                <div class="source-btn" data-source="paste" onclick="selectSource(this)">
+                    <div class="source-btn-name">✏ Paste text</div>
+                    <div class="source-btn-sub">Any source</div>
+                </div>
             </div>
-            <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;">
-                <a href="https://www.bbc.com/news" target="_blank" class="source-chip">BBC News ↗</a>
-                <a href="https://apnews.com" target="_blank" class="source-chip">AP News ↗</a>
-                <a href="https://www.reuters.com" target="_blank" class="source-chip">Reuters ↗</a>
-                <a href="https://edition.cnn.com" target="_blank" class="source-chip">CNN ↗</a>
-                <a href="https://www.theguardian.com" target="_blank" class="source-chip">Guardian ↗</a>
+
+            <!-- Category tabs (shown for RSS sources) -->
+            <div id="category-row" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px;"></div>
+
+            <!-- Article list -->
+            <div id="article-list-wrap" style="display:block;">
+                <div id="article-list-loading" style="display:none; text-align:center; padding:20px; font-size:.8rem; color:var(--muted);">
+                    <div style="display:inline-block; width:18px; height:18px; border:2px solid var(--rule); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; margin-bottom:8px;"></div><br>
+                    Loading articles…
+                </div>
+                <div id="article-list" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto;"></div>
+                <div id="article-list-error" style="display:none; font-size:.78rem; color:var(--red); padding:8px 0;"></div>
             </div>
         </div>
 
-        <!-- PASTE TEXT -->
+        <!-- ARTICLE CONTENT (filled by RSS or paste) -->
         <div class="panel-section">
-            <div class="panel-label">Article Text</div>
-            <textarea id="article-text" placeholder="Paste the article text here (Ctrl+V)…"
-                style="width:100%; height:140px; font-size:.8rem; font-family:'Inter',sans-serif; padding:10px 12px; border:1.5px solid var(--rule); border-radius:6px; resize:vertical; outline:none; background:var(--page); color:var(--ink); line-height:1.5; transition:border-color .2s;"
-                oninput="updateTextCount()"
-                onfocus="this.style.borderColor='var(--accent)'"
-                onblur="this.style.borderColor='var(--rule)'"></textarea>
-            <div style="font-size:.7rem; color:var(--muted); margin-top:4px; margin-bottom:12px;" id="text-count">0 words — paste an article above</div>
+            <div class="panel-label" id="content-label">Article Text</div>
 
-            <!-- Image URL -->
-            <div style="font-size:.65rem; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">
-                Article Image <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span>
-            </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <input type="url" id="image-url" placeholder="Paste image URL here…"
-                    style="flex:1; font-family:'JetBrains Mono',monospace; font-size:.75rem; padding:8px 10px; border:1.5px solid var(--rule); border-radius:6px; color:var(--ink); background:var(--page); outline:none;"
-                    oninput="previewImageUrl()"
-                    onfocus="this.style.borderColor='var(--accent)'"
-                    onblur="this.style.borderColor='var(--rule)'">
-                <div id="img-preview-thumb" style="width:44px; height:30px; border-radius:4px; overflow:hidden; display:none; border:1px solid var(--rule); flex-shrink:0;">
-                    <img id="img-thumb-el" src="" alt="" style="width:100%; height:100%; object-fit:cover;">
+            <!-- Selected article preview -->
+            <div id="selected-preview" style="display:none; margin-bottom:12px;">
+                <div style="display:flex; gap:10px; align-items:flex-start; padding:10px 12px; background:var(--page); border:1.5px solid var(--accent); border-radius:8px;">
+                    <img id="sel-thumb" src="" alt="" style="width:56px; height:38px; object-fit:cover; border-radius:4px; display:none; flex-shrink:0;">
+                    <div style="flex:1; min-width:0;">
+                        <div id="sel-headline" style="font-size:.82rem; font-weight:700; color:var(--ink); line-height:1.3; margin-bottom:3px;"></div>
+                        <div id="sel-meta" style="font-size:.7rem; color:var(--muted);"></div>
+                    </div>
+                    <button onclick="clearSelection()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;flex-shrink:0;" title="Clear">×</button>
                 </div>
             </div>
-            <div style="font-size:.68rem; color:var(--muted); margin-top:4px;">
-                On the article page: right-click image → <em>Copy image address</em>
+
+            <!-- Paste area (shown for paste mode or as fallback) -->
+            <div id="paste-area-wrap">
+                <textarea id="article-text" placeholder="Paste article text here (Ctrl+V)…"
+                    style="width:100%; height:120px; font-size:.8rem; font-family:'Inter',sans-serif; padding:10px 12px; border:1.5px solid var(--rule); border-radius:6px; resize:vertical; outline:none; background:var(--page); color:var(--ink); line-height:1.5; transition:border-color .2s;"
+                    oninput="updateTextCount()"
+                    onfocus="this.style.borderColor='var(--accent)'"
+                    onblur="this.style.borderColor='var(--rule)'"></textarea>
+                <div style="font-size:.7rem; color:var(--muted); margin-top:4px;" id="text-count">0 words</div>
+            </div>
+
+            <!-- Image URL -->
+            <div style="margin-top:12px;">
+                <div style="font-size:.65rem; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">
+                    Image <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="url" id="image-url" placeholder="Paste image URL…"
+                        style="flex:1; font-family:'JetBrains Mono',monospace; font-size:.75rem; padding:7px 10px; border:1.5px solid var(--rule); border-radius:6px; color:var(--ink); background:var(--page); outline:none;"
+                        oninput="previewImageUrl()"
+                        onfocus="this.style.borderColor='var(--accent)'"
+                        onblur="this.style.borderColor='var(--rule)'">
+                    <div id="img-preview-thumb" style="width:44px; height:30px; border-radius:4px; overflow:hidden; display:none; border:1px solid var(--rule); flex-shrink:0;">
+                        <img id="img-thumb-el" src="" alt="" style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                </div>
+                <div style="font-size:.68rem; color:var(--muted); margin-top:3px;">Right-click article image → Copy image address</div>
             </div>
         </div>
 
@@ -830,6 +929,243 @@ let mcAnswers = {};
 let matchSelected = { left: null, right: null };
 let matchPairs = {};  // leftIdx → rightIdx
 let lessonData = null;
+
+// ══════════════════════════════════════════════
+// RSS SOURCE PICKER
+// ══════════════════════════════════════════════
+const RSS_SOURCES = {
+    bbc: {
+        name: 'BBC News',
+        categories: {
+            'Top Stories': 'https://feeds.bbci.co.uk/news/rss.xml',
+            'World':       'https://feeds.bbci.co.uk/news/world/rss.xml',
+            'Technology':  'https://feeds.bbci.co.uk/news/technology/rss.xml',
+            'Science':     'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml',
+            'Health':      'https://feeds.bbci.co.uk/news/health/rss.xml',
+        }
+    },
+    ap: {
+        name: 'AP News',
+        categories: {
+            'Top News':    'https://feeds.apnews.com/rss/apf-topnews',
+            'World':       'https://feeds.apnews.com/rss/apf-intlnews',
+            'Technology':  'https://feeds.apnews.com/rss/apf-technology',
+            'Health':      'https://feeds.apnews.com/rss/apf-Health',
+        }
+    },
+    guardian: {
+        name: 'The Guardian',
+        categories: {
+            'World':       'https://feeds.theguardian.com/theguardian/world/rss',
+            'Science':     'https://feeds.theguardian.com/theguardian/science/rss',
+            'Technology':  'https://feeds.theguardian.com/theguardian/technology/rss',
+            'Environment': 'https://feeds.theguardian.com/theguardian/environment/rss',
+        }
+    },
+    npr: {
+        name: 'NPR News',
+        categories: {
+            'Top Stories': 'https://feeds.npr.org/1001/rss.xml',
+            'World':       'https://feeds.npr.org/1004/rss.xml',
+            'Health':      'https://feeds.npr.org/1128/rss.xml',
+            'Technology':  'https://feeds.npr.org/1019/rss.xml',
+        }
+    },
+    aljazeera: {
+        name: 'Al Jazeera',
+        categories: {
+            'Top Stories': 'https://www.aljazeera.com/xml/rss/all.xml',
+        }
+    }
+};
+
+const RSS2JSON = 'https://api.rss2json.com/v1/api.json';
+let currentSource = 'bbc';
+let currentCategory = null;
+let selectedArticle = null;
+
+function selectSource(el) {
+    document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    const src = el.dataset.source;
+    currentSource = src;
+    selectedArticle = null;
+    clearSelection();
+
+    if (src === 'paste') {
+        document.getElementById('category-row').innerHTML = '';
+        document.getElementById('article-list-wrap').style.display = 'none';
+        document.getElementById('paste-area-wrap').style.display = 'block';
+        document.getElementById('content-label').textContent = 'Paste Article Text';
+    } else {
+        document.getElementById('article-list-wrap').style.display = 'block';
+        document.getElementById('paste-area-wrap').style.display = 'none';
+        document.getElementById('content-label').textContent = 'Select an Article';
+        buildCategoryTabs(src);
+    }
+}
+
+function buildCategoryTabs(src) {
+    const cats = Object.keys(RSS_SOURCES[src].categories);
+    const row = document.getElementById('category-row');
+    row.innerHTML = '';
+    cats.forEach((cat, i) => {
+        const tab = document.createElement('div');
+        tab.className = 'cat-tab' + (i === 0 ? ' active' : '');
+        tab.textContent = cat;
+        tab.onclick = () => {
+            document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            loadRSS(RSS_SOURCES[src].categories[cat]);
+        };
+        row.appendChild(tab);
+    });
+    // Auto-load first category
+    loadRSS(RSS_SOURCES[src].categories[cats[0]]);
+}
+
+async function loadRSS(feedUrl) {
+    const list = document.getElementById('article-list');
+    const loading = document.getElementById('article-list-loading');
+    const errEl = document.getElementById('article-list-error');
+
+    list.innerHTML = '';
+    loading.style.display = 'block';
+    errEl.style.display = 'none';
+
+    try {
+        const apiUrl = `${RSS2JSON}?rss_url=${encodeURIComponent(feedUrl)}&count=12&api_key=`;
+        const resp = await fetch(apiUrl);
+        const data = await resp.json();
+
+        if (data.status !== 'ok' || !data.items?.length) {
+            throw new Error('No articles returned');
+        }
+
+        loading.style.display = 'none';
+
+        data.items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'article-item';
+
+            // Extract image from thumbnail, enclosure, or content
+            let imgUrl = item.thumbnail || item.enclosure?.link || '';
+            if (!imgUrl && item.content) {
+                const m = item.content.match(/src=["']([^"']+\.(jpg|jpeg|png|webp))/i);
+                if (m) imgUrl = m[1];
+            }
+
+            // Strip HTML from description
+            const desc = (item.description || '')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 120);
+
+            const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '';
+
+            div.innerHTML = `
+                ${imgUrl ? `<img class="article-item-img" src="${imgUrl}" alt="" onerror="this.style.display='none'">` : ''}
+                <div class="article-item-body">
+                    <div class="article-item-title">${item.title || 'Untitled'}</div>
+                    <div class="article-item-meta">${date}${desc ? ' · ' + desc : ''}</div>
+                </div>`;
+
+            div.onclick = () => selectArticle(item, imgUrl);
+            list.appendChild(div);
+        });
+
+    } catch(e) {
+        loading.style.display = 'none';
+        errEl.style.display = 'block';
+        errEl.textContent = '⚠ Could not load articles. Try another source or paste text manually.';
+        // Show paste area as fallback
+        document.getElementById('paste-area-wrap').style.display = 'block';
+        document.getElementById('content-label').textContent = 'Article Text (paste below)';
+    }
+}
+
+function selectArticle(item, imgUrl) {
+    selectedArticle = item;
+
+    // Mark selected in list
+    document.querySelectorAll('.article-item').forEach(el => el.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+
+    // Extract clean text from content/description
+    let text = item.content || item.description || '';
+    text = text
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+    // Fallback if content is too short — use title + description
+    if (text.split(/\s+/).length < 30) {
+        text = (item.title || '') + '\n\n' + text;
+    }
+
+    // Fill text area
+    document.getElementById('article-text').value = text.slice(0, 3000);
+    updateTextCount();
+
+    // Fill image
+    if (imgUrl && !document.getElementById('image-url').value.trim()) {
+        document.getElementById('image-url').value = imgUrl;
+        previewImageUrl();
+    }
+
+    // Show selected preview
+    const preview = document.getElementById('selected-preview');
+    document.getElementById('sel-headline').textContent = item.title || '';
+    const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+    document.getElementById('sel-meta').textContent = (RSS_SOURCES[currentSource]?.name || '') + (date ? ' · ' + date : '');
+    const thumb = document.getElementById('sel-thumb');
+    if (imgUrl) { thumb.src = imgUrl; thumb.style.display = 'block'; thumb.onerror = () => thumb.style.display = 'none'; }
+    else { thumb.style.display = 'none'; }
+    preview.style.display = 'block';
+
+    // Show paste area too (so teacher can edit if needed)
+    document.getElementById('paste-area-wrap').style.display = 'block';
+    document.getElementById('content-label').textContent = 'Selected Article';
+}
+
+function clearSelection() {
+    selectedArticle = null;
+    document.querySelectorAll('.article-item').forEach(el => el.classList.remove('selected'));
+    document.getElementById('selected-preview').style.display = 'none';
+    document.getElementById('article-text').value = '';
+    document.getElementById('image-url').value = '';
+    document.getElementById('img-preview-thumb').style.display = 'none';
+    updateTextCount();
+}
+
+function previewImageUrl() {
+    const url = document.getElementById('image-url').value.trim();
+    const thumb = document.getElementById('img-preview-thumb');
+    const el = document.getElementById('img-thumb-el');
+    if (!thumb || !el) return;
+    if (url) {
+        el.src = url;
+        el.onload = () => { thumb.style.display = 'block'; };
+        el.onerror = () => { thumb.style.display = 'none'; };
+    } else {
+        thumb.style.display = 'none';
+    }
+}
+
+// Auto-load BBC on page start
+window.addEventListener('load', () => {
+    buildCategoryTabs('bbc');
+    document.getElementById('paste-area-wrap').style.display = 'none';
+});
 
 function updateTextCount() {
     const text = document.getElementById('article-text').value;
