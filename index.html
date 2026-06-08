@@ -851,7 +851,7 @@ function checkBlockedSite() {
     const fetchBtn = document.getElementById('btn-fetch');
     try {
         const host = new URL(url).hostname.replace('www.','');
-        const isBlocked = BLOCKED_DOMAINS.some(d => host.includes(d));
+        const isBlocked = BLOCKED_DOMAINS.some(function(bh){ return host.includes(bh); });
         notice.style.display = isBlocked ? 'block' : 'none';
         fetchBtn.style.opacity = isBlocked ? '0.4' : '1';
         fetchBtn.title = isBlocked ? 'This site blocks automatic fetch' : '';
@@ -890,7 +890,7 @@ async function fetchArticle() {
     // Skip if known blocked domain
     try {
         const host = new URL(url).hostname.replace('www.','');
-        if (BLOCKED_DOMAINS.some(d => host.includes(d))) {
+        if (BLOCKED_DOMAINS.some(function(bh){ return host.includes(bh); })) {
             document.getElementById('blocked-notice').style.display = 'block';
             return;
         }
@@ -899,7 +899,7 @@ async function fetchArticle() {
     const btn = document.getElementById('btn-fetch');
     btn.disabled = true;
     btn.innerHTML = '⏳';
-    document.getElementById('fetch-error').classList.remove('visible');
+    document.getElementById('fetch-error').style.display='none';
 
     // Try multiple CORS proxies in order
     const proxies = [
@@ -926,7 +926,7 @@ async function fetchArticle() {
 
     if (!rawHtml) {
         document.getElementById('fetch-error').textContent = '⚠ Could not fetch. Please paste the article text manually below.';
-        document.getElementById('fetch-error').classList.add('visible');
+        document.getElementById('fetch-error').style.display='block';
         btn.disabled = false;
         btn.innerHTML = '<span>↓</span> Fetch';
         return;
@@ -998,7 +998,7 @@ async function fetchArticle() {
 
     if (wordCount < 20) {
         document.getElementById('fetch-error').textContent = '⚠ Got blocked. Please paste the article text below manually.';
-        document.getElementById('fetch-error').classList.add('visible');
+        document.getElementById('fetch-error').style.display='block';
         btn.disabled = false;
         btn.innerHTML = '<span>↓</span> Fetch';
         return;
@@ -1020,7 +1020,7 @@ async function fetchArticle() {
 }
 
     if (!rawHtml) {
-        document.getElementById('fetch-error').classList.add('visible');
+        document.getElementById('fetch-error').style.display='block';
         btn.disabled = false;
         btn.innerHTML = '<span>↓</span> Fetch';
         return;
@@ -1079,7 +1079,7 @@ async function fetchArticle() {
 
     if (wordCount < 20) {
         // Likely got blocked — show error with paste hint
-        document.getElementById('fetch-error').classList.add('visible');
+        document.getElementById('fetch-error').style.display='block';
         document.getElementById('fetch-error').textContent =
             '⚠ This site blocked the fetch (common with Reuters & CNN). Please open the article, select all text (Ctrl+A), copy (Ctrl+C), and paste it in the box below.';
         btn.disabled = false;
