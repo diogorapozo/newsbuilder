@@ -684,60 +684,51 @@
     <!-- ── LEFT PANEL ── -->
     <div class="panel-left">
 
-        <!-- URL INPUT -->
+        <!-- HOW TO USE -->
         <div class="panel-section">
-            <div class="panel-label">News Source</div>
-            <div class="url-input-wrap">
-                <input type="url" class="url-input" id="url-input" placeholder="https://www.bbc.com/news/..." oninput="checkBlockedSite()">
-                <button class="btn-fetch" id="btn-fetch" onclick="fetchArticle()">
-                    <span>↓</span> Fetch
-                </button>
+            <div class="panel-label">How to use</div>
+            <div style="background:var(--page); border-radius:8px; padding:12px 14px; font-size:.8rem; line-height:1.7; color:var(--ink-soft); border:1px solid var(--rule);">
+                <div style="margin-bottom:6px;"><strong style="color:var(--accent);">1.</strong> Open any news article (BBC, Reuters, CNN…)</div>
+                <div style="margin-bottom:6px;"><strong style="color:var(--accent);">2.</strong> Select all text <kbd style="background:#eee;border:1px solid #ccc;border-radius:3px;padding:1px 5px;font-size:.75rem;">Ctrl+A</kbd> → copy <kbd style="background:#eee;border:1px solid #ccc;border-radius:3px;padding:1px 5px;font-size:.75rem;">Ctrl+C</kbd></div>
+                <div style="margin-bottom:6px;"><strong style="color:var(--accent);">3.</strong> Paste below → add image URL (optional)</div>
+                <div><strong style="color:var(--accent);">4.</strong> Click <strong>✦ Generate Lesson</strong></div>
             </div>
-            <div class="source-chips">
-                <div class="source-chip" onclick="setSource('https://www.bbc.com/news')">BBC News</div>
-                <div class="source-chip" onclick="setSource('https://apnews.com')">AP News</div>
-                <div class="source-chip" onclick="setSource('https://www.reuters.com')">Reuters</div>
-                <div class="source-chip" onclick="setSource('https://edition.cnn.com')">CNN</div>
+            <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;">
+                <a href="https://www.bbc.com/news" target="_blank" class="source-chip">BBC News ↗</a>
+                <a href="https://apnews.com" target="_blank" class="source-chip">AP News ↗</a>
+                <a href="https://www.reuters.com" target="_blank" class="source-chip">Reuters ↗</a>
+                <a href="https://edition.cnn.com" target="_blank" class="source-chip">CNN ↗</a>
+                <a href="https://www.theguardian.com" target="_blank" class="source-chip">Guardian ↗</a>
             </div>
-
-            <!-- blocked site notice -->
-            <div id="blocked-notice" style="display:none; margin-top:8px; background:#fff8e0; border:1px solid #f0d060; border-radius:8px; padding:10px 12px; font-size:.78rem; color:#7a5a00; line-height:1.5;">
-                ⚠️ <strong>This site blocks automatic fetch.</strong><br>
-                Open the article in a new tab → <strong>Ctrl+A</strong> → <strong>Ctrl+C</strong> → paste below.<br>
-                Also paste the image URL in the field below if you want it in the lesson.
-            </div>
-
-            <div class="fetch-preview" id="fetch-preview">
-                <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:6px;">
-                    <img id="preview-img" src="" alt="" style="width:60px; height:40px; object-fit:cover; border-radius:4px; display:none; flex-shrink:0; border:1px solid var(--rule);">
-                    <div>
-                        <div class="fetch-preview-headline" id="preview-headline"></div>
-                        <div class="fetch-preview-meta">
-                            <span id="preview-source">—</span>
-                            <span id="preview-words">—</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="error-box" id="fetch-error"></div>
         </div>
 
-        <!-- PASTE TEXT + IMAGE URL -->
+        <!-- PASTE TEXT -->
         <div class="panel-section">
             <div class="panel-label">Article Text</div>
-            <textarea id="article-text" placeholder="Paste the original news article text here…"
-                style="width:100%; height:110px; font-size:.8rem; font-family:'Inter',sans-serif; padding:10px 12px; border:1.5px solid var(--rule); border-radius:6px; resize:vertical; outline:none; background:var(--page); color:var(--ink); line-height:1.5;"
-                oninput="updateTextCount()"></textarea>
-            <div style="font-size:.7rem; color:var(--muted); margin-top:4px; margin-bottom:10px;" id="text-count">0 words</div>
+            <textarea id="article-text" placeholder="Paste the article text here (Ctrl+V)…"
+                style="width:100%; height:140px; font-size:.8rem; font-family:'Inter',sans-serif; padding:10px 12px; border:1.5px solid var(--rule); border-radius:6px; resize:vertical; outline:none; background:var(--page); color:var(--ink); line-height:1.5; transition:border-color .2s;"
+                oninput="updateTextCount()"
+                onfocus="this.style.borderColor='var(--accent)'"
+                onblur="this.style.borderColor='var(--rule)'"></textarea>
+            <div style="font-size:.7rem; color:var(--muted); margin-top:4px; margin-bottom:12px;" id="text-count">0 words — paste an article above</div>
 
-            <div style="font-size:.65rem; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">Image URL <span style="font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></div>
+            <!-- Image URL -->
+            <div style="font-size:.65rem; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">
+                Article Image <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span>
+            </div>
             <div style="display:flex; gap:8px; align-items:center;">
-                <input type="url" id="image-url" placeholder="https://..." style="flex:1; font-family:'JetBrains Mono',monospace; font-size:.75rem; padding:8px 10px; border:1.5px solid var(--rule); border-radius:6px; color:var(--ink); background:var(--page); outline:none;" oninput="previewImageUrl()">
-                <div id="img-preview-thumb" style="width:40px; height:28px; border-radius:4px; overflow:hidden; display:none; border:1px solid var(--rule); flex-shrink:0;">
+                <input type="url" id="image-url" placeholder="Paste image URL here…"
+                    style="flex:1; font-family:'JetBrains Mono',monospace; font-size:.75rem; padding:8px 10px; border:1.5px solid var(--rule); border-radius:6px; color:var(--ink); background:var(--page); outline:none;"
+                    oninput="previewImageUrl()"
+                    onfocus="this.style.borderColor='var(--accent)'"
+                    onblur="this.style.borderColor='var(--rule)'">
+                <div id="img-preview-thumb" style="width:44px; height:30px; border-radius:4px; overflow:hidden; display:none; border:1px solid var(--rule); flex-shrink:0;">
                     <img id="img-thumb-el" src="" alt="" style="width:100%; height:100%; object-fit:cover;">
                 </div>
             </div>
-            <div style="font-size:.68rem; color:var(--muted); margin-top:4px;">Right-click the article image → "Copy image address" → paste here</div>
+            <div style="font-size:.68rem; color:var(--muted); margin-top:4px;">
+                On the article page: right-click image → <em>Copy image address</em>
+            </div>
         </div>
 
         <!-- SETTINGS -->
@@ -839,128 +830,6 @@ let mcAnswers = {};
 let matchSelected = { left: null, right: null };
 let matchPairs = {};  // leftIdx → rightIdx
 let lessonData = null;
-
-// ══════════════════════════════════════════════
-// BLOCKED SITE DETECTION
-// ══════════════════════════════════════════════
-const BLOCKED_DOMAINS = ['reuters.com','cnn.com','nytimes.com','wsj.com','ft.com','bloomberg.com'];
-
-function isBlockedSite(url) {
-    try {
-        const host = new URL(url).hostname.replace('www.','');
-        return BLOCKED_DOMAINS.some(function(bh){ return host.includes(bh); });
-    } catch(e) { return false; }
-}
-
-function checkBlockedSite() {
-    const url = document.getElementById('url-input').value.trim();
-    const notice = document.getElementById('blocked-notice');
-    const fetchBtn = document.getElementById('btn-fetch');
-    try {
-        const host = new URL(url).hostname.replace('www.','');
-        const isBlocked = BLOCKED_DOMAINS.some(function(bh){ return host.includes(bh); });
-        notice.style.display = isBlocked ? 'block' : 'none';
-        fetchBtn.style.opacity = isBlocked ? '0.4' : '1';
-        fetchBtn.title = isBlocked ? 'This site blocks automatic fetch' : '';
-    } catch(e) {
-        notice.style.display = 'none';
-        fetchBtn.style.opacity = '1';
-    }
-}
-
-function previewImageUrl() {
-    const url = document.getElementById('image-url').value.trim();
-    const thumb = document.getElementById('img-preview-thumb');
-    const el = document.getElementById('img-thumb-el');
-    if (url) {
-        el.src = url;
-        el.onload = () => thumb.style.display = 'block';
-        el.onerror = () => thumb.style.display = 'none';
-    } else {
-        thumb.style.display = 'none';
-    }
-}
-
-// ══════════════════════════════════════════════
-// FETCH ARTICLE
-// ══════════════════════════════════════════════
-function setSource(url) {
-    document.getElementById('url-input').value = url;
-    document.getElementById('url-input').focus();
-    checkBlockedSite();
-}
-
-async function fetchArticle() {
-    const url = document.getElementById('url-input').value.trim();
-    if (!url) { alert('Please enter a URL first.'); return; }
-
-    if (isBlockedSite(url)) {
-        document.getElementById('blocked-notice').style.display = 'block';
-        return;
-    }
-
-    const btn = document.getElementById('btn-fetch');
-    btn.disabled = true;
-    btn.innerHTML = '⏳';
-    document.getElementById('fetch-error').style.display = 'none';
-
-    try {
-        // Use Claude with web_search tool to fetch and extract the article server-side
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 1000,
-                tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-                messages: [{
-                    role: 'user',
-                    content: 'Fetch the news article at this URL: ' + url + '\n\nReturn ONLY a JSON object, no markdown, no explanation:\n{\n  "headline": "the article headline",\n  "image_url": "main article image URL or empty string",\n  "text": "full article body text, plain text only, no HTML"\n}\n\nIf you cannot access it, return: {"headline":"","image_url":"","text":""}'
-                }]
-            })
-        });
-
-        const data = await resp.json();
-        const rawText = (data.content || [])
-            .filter(function(b){ return b.type === 'text'; })
-            .map(function(b){ return b.text; })
-            .join('');
-
-        const clean = rawText.replace(/```json|```/g, '').trim();
-        let parsed = null;
-        try { parsed = JSON.parse(clean); } catch(e) {
-            const match = clean.match(/\{[\s\S]*\}/);
-            if (match) { try { parsed = JSON.parse(match[0]); } catch(e2) {} }
-        }
-
-        if (!parsed || !parsed.text || parsed.text.length < 50) {
-            throw new Error('Could not extract article content');
-        }
-
-        document.getElementById('article-text').value = parsed.text.slice(0, 3000);
-        document.getElementById('preview-headline').textContent = parsed.headline || 'Article';
-        document.getElementById('preview-source').textContent = new URL(url).hostname;
-        document.getElementById('preview-words').textContent = parsed.text.split(/\s+/).length + ' words';
-        document.getElementById('fetch-preview').classList.add('visible');
-
-        if (parsed.image_url && !document.getElementById('image-url').value.trim()) {
-            document.getElementById('image-url').value = parsed.image_url;
-            previewImageUrl();
-        }
-        updateTextCount();
-
-    } catch(e) {
-        console.error(e);
-        document.getElementById('fetch-error').textContent = '⚠ Could not fetch automatically. Please paste the article text in the box below.';
-        document.getElementById('fetch-error').style.display = 'block';
-    }
-
-    btn.disabled = false;
-    btn.innerHTML = '<span>↓</span> Fetch';
-}
 
 function updateTextCount() {
     const text = document.getElementById('article-text').value;
