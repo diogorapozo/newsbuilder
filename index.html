@@ -931,82 +931,54 @@ let matchPairs = {};  // leftIdx → rightIdx
 let lessonData = null;
 
 // ══════════════════════════════════════════════
-// RSS SOURCE PICKER
+// NEWS SOURCE PICKER — Claude web_search powered
 // ══════════════════════════════════════════════
-const RSS_SOURCES = {
-    bbc: {
-        name: 'BBC News',
-        categories: {
-            'Top Stories': 'https://feeds.bbci.co.uk/news/rss.xml',
-            'World':       'https://feeds.bbci.co.uk/news/world/rss.xml',
-            'Technology':  'https://feeds.bbci.co.uk/news/technology/rss.xml',
-            'Science':     'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml',
-            'Health':      'https://feeds.bbci.co.uk/news/health/rss.xml',
-        }
-    },
-    ap: {
-        name: 'AP News',
-        categories: {
-            'Top News':    'https://feeds.apnews.com/rss/apf-topnews',
-            'World':       'https://feeds.apnews.com/rss/apf-intlnews',
-            'Technology':  'https://feeds.apnews.com/rss/apf-technology',
-            'Health':      'https://feeds.apnews.com/rss/apf-Health',
-        }
-    },
-    guardian: {
-        name: 'The Guardian',
-        categories: {
-            'World':       'https://feeds.theguardian.com/theguardian/world/rss',
-            'Science':     'https://feeds.theguardian.com/theguardian/science/rss',
-            'Technology':  'https://feeds.theguardian.com/theguardian/technology/rss',
-            'Environment': 'https://feeds.theguardian.com/theguardian/environment/rss',
-        }
-    },
-    npr: {
-        name: 'NPR News',
-        categories: {
-            'Top Stories': 'https://feeds.npr.org/1001/rss.xml',
-            'World':       'https://feeds.npr.org/1004/rss.xml',
-            'Health':      'https://feeds.npr.org/1128/rss.xml',
-            'Technology':  'https://feeds.npr.org/1019/rss.xml',
-        }
-    },
-    aljazeera: {
-        name: 'Al Jazeera',
-        categories: {
-            'Top Stories': 'https://www.aljazeera.com/xml/rss/all.xml',
-        }
-    }
+const NEWS_SOURCES = {
+    bbc:       { name: 'BBC News',      query: 'site:bbc.com/news latest news today' },
+    ap:        { name: 'AP News',       query: 'site:apnews.com latest news today' },
+    guardian:  { name: 'The Guardian',  query: 'site:theguardian.com world news today' },
+    reuters:   { name: 'Reuters',       query: 'site:reuters.com latest news today' },
+    cnn:       { name: 'CNN',           query: 'site:cnn.com latest news today' },
+    npr:       { name: 'NPR',           query: 'site:npr.org news today' },
 };
 
-const RSS2JSON = 'https://api.rss2json.com/v1/api.json';
+const NEWS_CATEGORIES = {
+    bbc:      ['Top Stories', 'World', 'Technology', 'Science', 'Health', 'Sport'],
+    ap:       ['Top Stories', 'World', 'Politics', 'Technology', 'Health'],
+    guardian: ['World', 'Environment', 'Science', 'Technology', 'Culture'],
+    reuters:  ['Top Stories', 'World', 'Business', 'Technology', 'Health'],
+    cnn:      ['Top Stories', 'World', 'Politics', 'Business', 'Health'],
+    npr:      ['Top Stories', 'World', 'Technology', 'Health', 'Science'],
+};
+
 let currentSource = 'bbc';
-let currentCategory = null;
+let currentCategory = 'Top Stories';
 let selectedArticle = null;
+let articleCache = {};
 
 function selectSource(el) {
     document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
-    const src = el.dataset.source;
-    currentSource = src;
+    currentSource = el.dataset.source;
     selectedArticle = null;
     clearSelection();
 
-    if (src === 'paste') {
+    if (currentSource === 'paste') {
         document.getElementById('category-row').innerHTML = '';
         document.getElementById('article-list-wrap').style.display = 'none';
         document.getElementById('paste-area-wrap').style.display = 'block';
         document.getElementById('content-label').textContent = 'Paste Article Text';
-    } else {
-        document.getElementById('article-list-wrap').style.display = 'block';
-        document.getElementById('paste-area-wrap').style.display = 'none';
-        document.getElementById('content-label').textContent = 'Select an Article';
-        buildCategoryTabs(src);
+        return;
     }
+
+    document.getElementById('article-list-wrap').style.display = 'block';
+    document.getElementById('paste-area-wrap').style.display = 'none';
+    document.getElementById('content-label').textContent = 'Select an Article';
+    buildCategoryTabs(currentSource);
 }
 
 function buildCategoryTabs(src) {
-    const cats = Object.keys(RSS_SOURCES[src].categories);
+    const cats = NEWS_CATEGORIES[src] || ['Top Stories'];
     const row = document.getElementById('category-row');
     row.innerHTML = '';
     cats.forEach((cat, i) => {
@@ -1016,125 +988,192 @@ function buildCategoryTabs(src) {
         tab.onclick = () => {
             document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            loadRSS(RSS_SOURCES[src].categories[cat]);
+            currentCategory = cat;
+            fetchArticleList(src, cat);
         };
         row.appendChild(tab);
     });
-    // Auto-load first category
-    loadRSS(RSS_SOURCES[src].categories[cats[0]]);
+    currentCategory = cats[0];
+    fetchArticleList(src, cats[0]);
 }
 
-async function loadRSS(feedUrl) {
+async function fetchArticleList(src, category) {
     const list = document.getElementById('article-list');
     const loading = document.getElementById('article-list-loading');
     const errEl = document.getElementById('article-list-error');
+
+    const cacheKey = src + '_' + category;
+    if (articleCache[cacheKey]) {
+        renderArticleList(articleCache[cacheKey]);
+        return;
+    }
 
     list.innerHTML = '';
     loading.style.display = 'block';
     errEl.style.display = 'none';
 
-    try {
-        const apiUrl = `${RSS2JSON}?rss_url=${encodeURIComponent(feedUrl)}&count=12&api_key=`;
-        const resp = await fetch(apiUrl);
-        const data = await resp.json();
+    const source = NEWS_SOURCES[src];
+    const catQuery = category === 'Top Stories' ? '' : ' ' + category;
+    const searchQuery = source.query.replace('latest news today', category.toLowerCase() + ' news today');
 
-        if (data.status !== 'ok' || !data.items?.length) {
-            throw new Error('No articles returned');
+    try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1000,
+                tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+                messages: [{
+                    role: 'user',
+                    content: `Search for the 8 most recent ${category} news articles from ${source.name}.
+
+Search query: "${searchQuery}"
+
+Return ONLY a JSON array, no markdown, no explanation:
+[
+  {
+    "title": "article headline",
+    "summary": "1-2 sentence summary of the article (50 words max)",
+    "url": "article URL",
+    "date": "publication date as string",
+    "category": "${category}"
+  }
+]
+
+Return exactly 8 articles. Only real, recently published articles.`
+                }]
+            })
+        });
+
+        const data = await resp.json();
+        const rawText = (data.content || [])
+            .filter(b => b.type === 'text')
+            .map(b => b.text)
+            .join('');
+
+        const clean = rawText.replace(/```json|```/g, '').trim();
+        let articles = [];
+        try {
+            articles = JSON.parse(clean);
+        } catch(e) {
+            const match = clean.match(/\[[\s\S]*\]/);
+            if (match) articles = JSON.parse(match[0]);
         }
 
+        if (!Array.isArray(articles) || articles.length === 0) throw new Error('No articles');
+
+        articleCache[cacheKey] = articles;
         loading.style.display = 'none';
-
-        data.items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'article-item';
-
-            // Extract image from thumbnail, enclosure, or content
-            let imgUrl = item.thumbnail || item.enclosure?.link || '';
-            if (!imgUrl && item.content) {
-                const m = item.content.match(/src=["']([^"']+\.(jpg|jpeg|png|webp))/i);
-                if (m) imgUrl = m[1];
-            }
-
-            // Strip HTML from description
-            const desc = (item.description || '')
-                .replace(/<[^>]+>/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .slice(0, 120);
-
-            const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '';
-
-            div.innerHTML = `
-                ${imgUrl ? `<img class="article-item-img" src="${imgUrl}" alt="" onerror="this.style.display='none'">` : ''}
-                <div class="article-item-body">
-                    <div class="article-item-title">${item.title || 'Untitled'}</div>
-                    <div class="article-item-meta">${date}${desc ? ' · ' + desc : ''}</div>
-                </div>`;
-
-            div.onclick = () => selectArticle(item, imgUrl);
-            list.appendChild(div);
-        });
+        renderArticleList(articles);
 
     } catch(e) {
         loading.style.display = 'none';
         errEl.style.display = 'block';
         errEl.textContent = '⚠ Could not load articles. Try another source or paste text manually.';
-        // Show paste area as fallback
         document.getElementById('paste-area-wrap').style.display = 'block';
-        document.getElementById('content-label').textContent = 'Article Text (paste below)';
     }
 }
 
-function selectArticle(item, imgUrl) {
-    selectedArticle = item;
+function renderArticleList(articles) {
+    const list = document.getElementById('article-list');
+    list.innerHTML = '';
 
-    // Mark selected in list
-    document.querySelectorAll('.article-item').forEach(el => el.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
+    articles.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'article-item';
+        div.innerHTML = `
+            <div class="article-item-body">
+                <div class="article-item-title">${item.title || 'Untitled'}</div>
+                <div class="article-item-meta">${item.date || ''}${item.summary ? ' · ' + item.summary.slice(0, 80) + '…' : ''}</div>
+            </div>
+            <div style="font-size:.65rem;color:var(--accent);font-weight:600;flex-shrink:0;padding-top:2px;">▶</div>`;
+        div.onclick = () => fetchFullArticle(item, div);
+        list.appendChild(div);
+    });
+}
 
-    // Extract clean text from content/description
-    let text = item.content || item.description || '';
-    text = text
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/p>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+async function fetchFullArticle(item, el) {
+    // Mark selected
+    document.querySelectorAll('.article-item').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    el.querySelector('[style*="accent"]').textContent = '⏳';
 
-    // Fallback if content is too short — use title + description
-    if (text.split(/\s+/).length < 30) {
-        text = (item.title || '') + '\n\n' + text;
+    try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1000,
+                tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+                messages: [{
+                    role: 'user',
+                    content: `Find and retrieve the full text of this news article:
+
+Title: "${item.title}"
+URL: ${item.url || '(search for it)'}
+
+Search for it and return ONLY this JSON, no markdown:
+{
+  "title": "article headline",
+  "full_text": "complete article body text, plain text, 150-400 words",
+  "image_url": "main article image URL if found, or empty string",
+  "date": "publication date",
+  "source": "publication name"
+}`
+                }]
+            })
+        });
+
+        const data = await resp.json();
+        const rawText = (data.content || [])
+            .filter(b => b.type === 'text')
+            .map(b => b.text)
+            .join('');
+
+        const clean = rawText.replace(/```json|```/g, '').trim();
+        let parsed = null;
+        try { parsed = JSON.parse(clean); }
+        catch(e) { const m = clean.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
+
+        el.querySelector('[style*="accent"]').textContent = '✓';
+
+        const text = parsed?.full_text || item.summary || item.title || '';
+        const imgUrl = parsed?.image_url || '';
+
+        document.getElementById('article-text').value = text.slice(0, 3000);
+        updateTextCount();
+
+        if (imgUrl && !document.getElementById('image-url').value.trim()) {
+            document.getElementById('image-url').value = imgUrl;
+            previewImageUrl();
+        }
+
+        // Show selected preview
+        document.getElementById('sel-headline').textContent = item.title || '';
+        document.getElementById('sel-meta').textContent =
+            (NEWS_SOURCES[currentSource]?.name || '') + (item.date ? ' · ' + item.date : '');
+        const thumb = document.getElementById('sel-thumb');
+        if (imgUrl) { thumb.src = imgUrl; thumb.style.display = 'block'; thumb.onerror = () => thumb.style.display = 'none'; }
+        else { thumb.style.display = 'none'; }
+        document.getElementById('selected-preview').style.display = 'block';
+        document.getElementById('paste-area-wrap').style.display = 'block';
+        document.getElementById('content-label').textContent = 'Selected Article';
+
+    } catch(e) {
+        el.querySelector('[style*="accent"]').textContent = '▶';
+        // Fallback to summary
+        document.getElementById('article-text').value = (item.title || '') + '\n\n' + (item.summary || '');
+        updateTextCount();
+        document.getElementById('paste-area-wrap').style.display = 'block';
     }
-
-    // Fill text area
-    document.getElementById('article-text').value = text.slice(0, 3000);
-    updateTextCount();
-
-    // Fill image
-    if (imgUrl && !document.getElementById('image-url').value.trim()) {
-        document.getElementById('image-url').value = imgUrl;
-        previewImageUrl();
-    }
-
-    // Show selected preview
-    const preview = document.getElementById('selected-preview');
-    document.getElementById('sel-headline').textContent = item.title || '';
-    const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
-    document.getElementById('sel-meta').textContent = (RSS_SOURCES[currentSource]?.name || '') + (date ? ' · ' + date : '');
-    const thumb = document.getElementById('sel-thumb');
-    if (imgUrl) { thumb.src = imgUrl; thumb.style.display = 'block'; thumb.onerror = () => thumb.style.display = 'none'; }
-    else { thumb.style.display = 'none'; }
-    preview.style.display = 'block';
-
-    // Show paste area too (so teacher can edit if needed)
-    document.getElementById('paste-area-wrap').style.display = 'block';
-    document.getElementById('content-label').textContent = 'Selected Article';
 }
 
 function clearSelection() {
@@ -1153,19 +1192,17 @@ function previewImageUrl() {
     const el = document.getElementById('img-thumb-el');
     if (!thumb || !el) return;
     if (url) {
-        el.src = url;
-        el.onload = () => { thumb.style.display = 'block'; };
-        el.onerror = () => { thumb.style.display = 'none'; };
-    } else {
-        thumb.style.display = 'none';
-    }
+        el.src = url; el.onload = () => thumb.style.display = 'block';
+        el.onerror = () => thumb.style.display = 'none';
+    } else { thumb.style.display = 'none'; }
 }
 
-// Auto-load BBC on page start
+// Init
 window.addEventListener('load', () => {
     buildCategoryTabs('bbc');
     document.getElementById('paste-area-wrap').style.display = 'none';
 });
+
 
 function updateTextCount() {
     const text = document.getElementById('article-text').value;
